@@ -1,0 +1,139 @@
+import { ShowsActionTypes, ShowsTypes } from "./showsActionTypes";
+
+const initState = {
+  loading: false,
+  successMessage: null as null | string,
+  error: null as null | string,
+  shows: [] as Array<any>,
+  genres: [] as Array<any>,
+  show: null as null | any,
+};
+type InitStateType = typeof initState;
+
+const showsReduser = (state = initState, action: ShowsTypes): InitStateType => {
+  switch (action.type) {
+    case ShowsActionTypes.LOADING: {
+      return {
+        ...state,
+        loading: true,
+      };
+    }
+    case ShowsActionTypes.FAILURE: {
+      return {
+        ...state,
+        loading: false,
+        error: "Somthing wrong",
+      };
+    }
+
+    case ShowsActionTypes.GET_SHOWS_SUCCESS: {
+      let genresArr = [];
+
+      const getGenresArr = action.payload.map((item) => item.show.genres);
+      for (let value of getGenresArr) {
+        genresArr.push(...value);
+      }
+      genresArr = Array.from(new Set(genresArr));
+
+      const sortedGenresArrWithScorr = action.payload.sort(
+        (a, b): any => a.score < b.score
+      );
+
+      let genres = [];
+      for (let i of genresArr.sort()) {
+        genres.push({ name: i, collapsed: "hide" });
+      }
+
+      action.payload.map((item) => (item.star = false));
+
+      return {
+        ...state,
+        loading: false,
+        successMessage: null,
+        error: null,
+        shows: sortedGenresArrWithScorr,
+        genres: genres,
+      };
+    }
+
+    case ShowsActionTypes.COLLAPSE: {
+      let collapsedGenres = [...state.genres];
+      if (collapsedGenres.length >= 1) {
+        let genresIndex = collapsedGenres.findIndex(
+          (item: any) => item.name === action.payload.type
+        );
+        if (collapsedGenres.length > 0 && genresIndex >= 0) {
+          collapsedGenres[genresIndex].collapsed =
+            action.payload.toggleCollapse;
+        }
+      }
+
+      return {
+        ...state,
+        genres: collapsedGenres,
+        loading: false,
+      };
+    }
+
+    case ShowsActionTypes.STAR_CHANGER: {
+      const newShows = [...state.shows];
+
+      if (newShows.length > 0) {
+        let showIndex = newShows.findIndex(
+          (item) => item.show.name === action.payload
+        );
+        newShows[showIndex].star = !newShows[showIndex].star;
+      }
+
+      return {
+        ...state,
+        shows: newShows,
+        loading: false,
+      };
+    }
+
+    case ShowsActionTypes.DELETE_SHOW_SUCCESS: {
+      const newShows = [...state.shows];
+
+      let filteredShows = newShows.filter(
+        (show) => show.show.id !== action.payload
+      );
+
+      return {
+        ...state,
+        shows: filteredShows,
+        loading: false,
+      };
+    }
+
+    case ShowsActionTypes.GET_SHOW_SUCCESS: {
+      return {
+        ...state,
+        show: action.payload,
+        loading: false,
+      };
+    }
+
+    case ShowsActionTypes.DELETE_SHOWS_SUCCESS: {
+      const newShows = state.shows.filter((item) => {
+        return item.show.name !== action.payload;
+      });
+
+      const newGenres = state.genres.filter((item: any) => {
+        return item.name !== action.payload;
+      });
+
+      return {
+        ...state,
+        shows: newShows,
+        loading: false,
+        genres: newGenres,
+      };
+    }
+
+    default:
+      return state;
+  }
+};
+
+export default showsReduser;
